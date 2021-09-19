@@ -282,6 +282,7 @@ namespace Grimoire.UI
 			this.btnGetCell = new DarkUI.Controls.DarkButton();
 			this.btnReloadBank = new DarkUI.Controls.DarkButton();
 			this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+			this.darkMenuStrip1 = new DarkUI.Controls.DarkMenuStrip();
 			this.botToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.toolsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.fastTravelsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -312,7 +313,6 @@ namespace Grimoire.UI
 			this.disableAnimationsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.pluginsStrip = new System.Windows.Forms.ToolStripMenuItem();
 			this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.darkMenuStrip1 = new DarkUI.Controls.DarkMenuStrip();
 			((System.ComponentModel.ISupportInitialize)(this.flashPlayer)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
 			this.splitContainer1.Panel1.SuspendLayout();
@@ -329,14 +329,12 @@ namespace Grimoire.UI
 			// 
 			// flashPlayer
 			// 
-			this.flashPlayer.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
+			this.flashPlayer.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.flashPlayer.Enabled = true;
 			this.flashPlayer.Location = new System.Drawing.Point(0, 0);
 			this.flashPlayer.Name = "flashPlayer";
 			this.flashPlayer.OcxState = ((System.Windows.Forms.AxHost.State)(resources.GetObject("flashPlayer.OcxState")));
-			this.flashPlayer.Size = new System.Drawing.Size(960, 597);
+			this.flashPlayer.Size = new System.Drawing.Size(960, 551);
 			this.flashPlayer.TabIndex = 2;
 			// 
 			// startToolStripMenuItem
@@ -444,7 +442,7 @@ namespace Grimoire.UI
 			this.prgLoader.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-			this.prgLoader.Location = new System.Drawing.Point(24, 256);
+			this.prgLoader.Location = new System.Drawing.Point(24, 222);
 			this.prgLoader.Name = "prgLoader";
 			this.prgLoader.Size = new System.Drawing.Size(910, 24);
 			this.prgLoader.TabIndex = 39;
@@ -575,6 +573,29 @@ namespace Grimoire.UI
 			this.splitContainer1.SplitterDistance = 824;
 			this.splitContainer1.SplitterWidth = 1;
 			this.splitContainer1.TabIndex = 38;
+			this.splitContainer1.Visible = false;
+			// 
+			// darkMenuStrip1
+			// 
+			this.darkMenuStrip1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(63)))), ((int)(((byte)(65)))));
+			this.darkMenuStrip1.Dock = System.Windows.Forms.DockStyle.Fill;
+			this.darkMenuStrip1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+			this.darkMenuStrip1.GripMargin = new System.Windows.Forms.Padding(0);
+			this.darkMenuStrip1.ImeMode = System.Windows.Forms.ImeMode.NoControl;
+			this.darkMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.botToolStripMenuItem,
+            this.toolsToolStripMenuItem,
+            this.packetsToolStripMenuItem,
+            this.optionsToolStripMenuItem,
+            this.pluginsStrip,
+            this.aboutToolStripMenuItem});
+			this.darkMenuStrip1.Location = new System.Drawing.Point(0, 0);
+			this.darkMenuStrip1.Name = "darkMenuStrip1";
+			this.darkMenuStrip1.Padding = new System.Windows.Forms.Padding(2);
+			this.darkMenuStrip1.Size = new System.Drawing.Size(960, 27);
+			this.darkMenuStrip1.TabIndex = 35;
+			this.darkMenuStrip1.Text = "darkMenuStrip1";
+			this.darkMenuStrip1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.MenuMain_MouseDown);
 			// 
 			// botToolStripMenuItem
 			// 
@@ -882,34 +903,12 @@ namespace Grimoire.UI
 			this.aboutToolStripMenuItem.Text = "About";
 			this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
 			// 
-			// darkMenuStrip1
-			// 
-			this.darkMenuStrip1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(63)))), ((int)(((byte)(65)))));
-			this.darkMenuStrip1.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.darkMenuStrip1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-			this.darkMenuStrip1.GripMargin = new System.Windows.Forms.Padding(0);
-			this.darkMenuStrip1.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-			this.darkMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.botToolStripMenuItem,
-            this.toolsToolStripMenuItem,
-            this.packetsToolStripMenuItem,
-            this.optionsToolStripMenuItem,
-            this.pluginsStrip,
-            this.aboutToolStripMenuItem});
-			this.darkMenuStrip1.Location = new System.Drawing.Point(0, 0);
-			this.darkMenuStrip1.Name = "darkMenuStrip1";
-			this.darkMenuStrip1.Padding = new System.Windows.Forms.Padding(2);
-			this.darkMenuStrip1.Size = new System.Drawing.Size(960, 27);
-			this.darkMenuStrip1.TabIndex = 35;
-			this.darkMenuStrip1.Text = "darkMenuStrip1";
-			this.darkMenuStrip1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.MenuMain_MouseDown);
-			// 
 			// Root
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.BackColor = System.Drawing.Color.Black;
-			this.ClientSize = new System.Drawing.Size(960, 597);
+			this.ClientSize = new System.Drawing.Size(960, 551);
 			this.Controls.Add(this.prgLoader);
 			this.Controls.Add(this.splitContainer1);
 			this.Controls.Add(this.flashPlayer);
@@ -918,7 +917,6 @@ namespace Grimoire.UI
 			this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
 			this.Name = "Root";
 			this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-			this.Text = "Grimlite Li";
 			this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Root_FormClosing);
 			this.Load += new System.EventHandler(this.Root_Load);
 			this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.Root_KeyPress);

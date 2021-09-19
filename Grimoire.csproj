@@ -60,7 +60,7 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>4zvbZ3m.ico</ApplicationIcon>
+    <ApplicationIcon>AQLauncer.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup />
   <PropertyGroup>
@@ -578,6 +578,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="4zvbZ3m.ico" />
+    <Content Include="AQLauncer.ico" />
     <None Include="Resources\pdipic.png" />
     <None Include="Resources\defaulttext.txt" />
     <None Include="Resources\statementcmds.txt" />
