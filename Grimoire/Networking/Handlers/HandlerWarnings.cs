@@ -16,7 +16,7 @@ namespace Grimoire.Networking.Handlers
 
 		public void Handle(XtMessage message)
 		{
-			if (message.Arguments[4] == "Please slow down. Last action was too soon!" && Root.Instance.chkStartBot.Checked)
+			if (message.Arguments[4] == "Please slow down. Last action was too soon!")
 			{
 				message.Send = false;
 			}

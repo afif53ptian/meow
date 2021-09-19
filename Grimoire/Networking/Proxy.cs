@@ -1,13 +1,15 @@
+using Grimoire.Game;
+using Grimoire.Networking.Handlers;
+using Grimoire.Tools;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Grimoire.Game;
-using Grimoire.Networking.Handlers;
-using Grimoire.Tools;
+using System.Xml;
 
 namespace Grimoire.Networking
 {
@@ -15,156 +17,377 @@ namespace Grimoire.Networking
 	{
 		public delegate void Receive(Message message);
 
-		public static Proxy Instance { get; } = new Proxy();
+		private readonly List<IJsonMessageHandler> _handlersJson;
+
+		private readonly List<IXtMessageHandler> _handlersXt;
+
+		private readonly List<IXmlMessageHandler> _handlersXml;
+
+		private TcpClient _client;
+
+		private TcpClient _server;
+
+		private TcpListener _listener;
+
+		private List<byte> _bufferClient;
+
+		private List<byte> _bufferServer;
+
+		private const int MaxBufferSize = 1024;
+
+		private static readonly CancellationTokenSource AppClosingToken;
+
+		private bool _shouldConnect;
+
+		private bool _policyReceived;
+
+		public static Proxy Instance
+		{
+			get;
+			set;
+		}
+
+		public int ListenerPort
+		{
+			get;
+			set;
+		}
 
 		public event Receive ReceivedFromClient;
 
 		public event Receive ReceivedFromServer;
 
-		public int ListenerPort { get; set; }
-
-		private static readonly CancellationTokenSource AppClosingToken = new CancellationTokenSource();
-
 		private Proxy()
 		{
-			this.ReceivedFromServer += this.ProcessMessage;
-			this.ReceivedFromClient += this.ProcessMessage;
+			_handlersJson = new List<IJsonMessageHandler>
+			{
+                //new HandlerSkills(),
+                //new HandlerDPS(),
+                new HandlerDropItem(),
+				new HandlerGetQuests(),
+				new HandlerQuestComplete(),
+				new HandlerMapJoin(),
+                //new HandlerLoadBank(),
+                new HandlerLoadShop()
+			};
+			_handlersXt = new List<IXtMessageHandler>
+			{
+				//new HandlerWarningsXt(),
+				//new HandlerLogin(),
+				//new HandlerAFK(),
+				//new HandlerChat(),
+				//new HandlerXtJoin(),
+				//new HandlerXtCellJoin()
+				new HandlerWarnings()
+			};
+			_handlersXml = new List<IXmlMessageHandler>
+			{
+				//new HandlerPolicy(),
+				//new HandlerWarningsXml()
+			};
+			_shouldConnect = true;
+			ReceivedFromServer += ProcessMessage;
+			ReceivedFromClient += ProcessMessage;
+			_bufferClient = new List<byte>();
+			_bufferServer = new List<byte>();
 		}
 
 		public void RegisterHandler(IJsonMessageHandler handler)
 		{
-			this._handlersJson.Add(handler);
+			RegisterHandler(handler, _handlersJson);
 		}
 
 		public void RegisterHandler(IXmlMessageHandler handler)
 		{
-			this._handlersXml.Add(handler);
+			RegisterHandler(handler, _handlersXml);
 		}
 
 		public void RegisterHandler(IXtMessageHandler handler)
 		{
-			this._handlersXt.Add(handler);
+			RegisterHandler(handler, _handlersXt);
 		}
 
 		public void UnregisterHandler(IJsonMessageHandler handler)
 		{
-			this._handlersJson.Remove(handler);
+			_handlersJson.Remove(handler);
 		}
 
 		public void UnregisterHandler(IXmlMessageHandler handler)
 		{
-			this._handlersXml.Remove(handler);
+			_handlersXml.Remove(handler);
 		}
 
 		public void UnregisterHandler(IXtMessageHandler handler)
 		{
-			this._handlersXt.Remove(handler);
+			_handlersXt.Remove(handler);
 		}
 
-		public void Start()
+		private void RegisterHandler<T>(T handler, List<T> list)
 		{
-			this._listener = new TcpListener(IPAddress.Loopback, this.ListenerPort);
-			this._listener.Start();
-			this._listener.BeginAcceptTcpClient(new AsyncCallback(this.OnClientAccept), null);
+			if (!list.Contains(handler))
+			{
+				list.Add(handler);
+			}
+		}
+
+		public async Task Start()
+		{
+			if (_listener == null)
+			{
+				_listener = new TcpListener(IPAddress.Loopback, ListenerPort);
+			}
+			while (!AppClosingToken.IsCancellationRequested)
+			{
+				if (_shouldConnect)
+				{
+					try
+					{
+						await AcceptAndConnect();
+						_shouldConnect = false;
+					}
+					catch (Exception e)
+					{
+						Console.WriteLine($"er: {e}");
+					}
+				}
+				else
+				{
+					await Task.Delay(1000);
+				}
+			}
+		}
+
+		private async Task AcceptAndConnect()
+		{
+			_listener.Start();
+			_client = await _listener.AcceptTcpClientAsync();
+			_server = new TcpClient();
+			string text = Flash.Call<string>("RealAddress", new string[0]);
+			IPAddress gameServerAddress;
+			try
+			{
+				gameServerAddress = IPAddress.Parse(text);
+			}
+			catch (Exception)
+			{
+				IPHostEntry hostEntry = Dns.GetHostEntry(text);
+				gameServerAddress = hostEntry.AddressList[0];
+			}
+			if (_policyReceived)
+			{
+				await _server.ConnectAsync(gameServerAddress, Flash.Call<int>("RealPort", new string[0]));
+			}
+			else
+			{
+				byte[] cbuffer2 = new byte[1024];
+				byte[] sbuffer2 = new byte[1024];
+				byte[] buffer = cbuffer2;
+				cbuffer2 = ReceiveOnce(buffer, await _client.GetStream().ReadAsync(cbuffer2, 0, 1024));
+				await _server.ConnectAsync(gameServerAddress, Flash.Call<int>("RealPort", new string[0]));
+				await SendToServer(cbuffer2);
+				buffer = sbuffer2;
+				sbuffer2 = ReceiveOnce(buffer, await _server.GetStream().ReadAsync(sbuffer2, 0, 1024));
+				await SendToClient(ModifyDomainPolicy(sbuffer2));
+				_client.Close();
+				_client = await _listener.AcceptTcpClientAsync();
+				_policyReceived = true;
+			}
+			_listener.Stop();
+			Task.Factory.StartNew(ReceiveFromClient, TaskCreationOptions.LongRunning);
+			Task.Factory.StartNew(ReceiveFromServer, TaskCreationOptions.LongRunning);
+		}
+
+		private byte[] ModifyDomainPolicy(byte[] policy)
+		{
+			XmlDocument xmlDocument = new XmlDocument();
+			xmlDocument.LoadXml(Encoding.UTF8.GetString(policy));
+			xmlDocument["cross-domain-policy"]["allow-access-from"].Attributes["to-ports"].Value = ListenerPort.ToString();
+			return Encoding.UTF8.GetBytes(xmlDocument.OuterXml);
+		}
+
+		private byte[] ReceiveOnce(byte[] buffer, int read)
+		{
+			byte[] array = new byte[read];
+			Array.Copy(buffer, array, read);
+			return array;
 		}
 
 		public void Stop(bool appClosing)
 		{
-			if (appClosing)
-				AppClosingToken.Cancel();
-			this._listener.Stop();
-			GrimoireClient server = this._server;
-			if (server != null)
+			if (!_shouldConnect)
 			{
-				server.Disconnect();
-			}
-			GrimoireClient client = this._client;
-			if (client == null)
-			{
-				return;
-			}
-			client.Disconnect();
-		}
-
-		private void OnClientAccept(IAsyncResult result)
-		{
-			if (AppClosingToken.IsCancellationRequested) return;
-			if (this._client != null)
-			{
-				this._client.Disconnected -= this.OnClientDisconnect;
-				this._client.MessageReceived -= this.OnClientMessage;
-				this._client.Disconnect();
-			}
-			if (this._server != null)
-			{
-				this._server.Disconnected -= this.OnServerDisconnect;
-				this._server.MessageReceived -= this.OnServerMessage;
-				this._server.Disconnect();
-			}
-			try
-			{
-				this._client = new GrimoireClient(this._listener.EndAcceptTcpClient(result));
-				this._server = new GrimoireClient(Flash.Call<string>("RealAddress", new string[0]), Flash.Call<int>("RealPort", new string[0]));
-				this._client.Disconnected += this.OnClientDisconnect;
-				this._server.Disconnected += this.OnServerDisconnect;
-				this._client.MessageReceived += this.OnClientMessage;
-				this._server.MessageReceived += this.OnServerMessage;
-				this._client.Start();
-				this._server.Start();
-			}
-			finally
-			{
-				this._listener.BeginAcceptTcpClient(new AsyncCallback(this.OnClientAccept), null);
+				if (appClosing)
+				{
+					AppClosingToken.Cancel();
+				}
+				_server?.Close();
+				_client?.Close();
+				_listener.Stop();
+				_shouldConnect = true;
 			}
 		}
 
-		private void OnClientDisconnect()
+		private async Task ReceiveFromClient()
 		{
-			GrimoireClient server = this._server;
-			if (server == null)
+			while (!AppClosingToken.IsCancellationRequested)
 			{
-				return;
+				try
+				{
+					NetworkStream stream = _client.GetStream();
+					if (!_shouldConnect && stream.CanRead)
+					{
+						byte[] buffer = new byte[1024];
+						int num;
+						int read = num = await stream.ReadAsync(buffer, 0, 1024);
+						if (num == 0)
+						{
+							Stop(appClosing: false);
+							return;
+						}
+						int i = 0;
+						while (true)
+						{
+							int num2 = read - 1;
+							read = num2;
+							if (num2 < 0)
+							{
+								break;
+							}
+							byte b = buffer[i++];
+							if (b != 0)
+							{
+								_bufferClient.Add(b);
+							}
+							else
+							{
+								byte[] bytes = _bufferClient.ToArray();
+								Message message = CreateMessage(Encoding.UTF8.GetString(bytes));
+								this.ReceivedFromClient?.Invoke(message);
+								if (message.Send)
+								{
+									await SendToServer(message.ToString());
+								}
+								_bufferClient = new List<byte>();
+							}
+						}
+					}
+				}
+				catch
+				{
+					Stop(appClosing: false);
+					return;
+				}
 			}
-			server.Disconnect();
 		}
 
-		private void OnServerDisconnect()
+		private async Task ReceiveFromServer()
 		{
-			GrimoireClient client = this._client;
-			if (client == null)
+			while (!AppClosingToken.IsCancellationRequested)
 			{
-				return;
+				try
+				{
+					NetworkStream stream = _server.GetStream();
+					if (!_shouldConnect && stream.CanRead)
+					{
+						byte[] buffer = new byte[1024];
+						int num;
+						int read = num = await stream.ReadAsync(buffer, 0, 1024);
+						if (num == 0)
+						{
+							Stop(appClosing: false);
+							return;
+						}
+						int i = 0;
+						while (true)
+						{
+							int num2 = read - 1;
+							read = num2;
+							if (num2 < 0)
+							{
+								break;
+							}
+							byte b = buffer[i++];
+							if (b != 0)
+							{
+								_bufferServer.Add(b);
+							}
+							else
+							{
+								byte[] bytes = _bufferServer.ToArray();
+								Message message = CreateMessage(Encoding.UTF8.GetString(bytes));
+								this.ReceivedFromServer?.Invoke(message);
+								if (message.Send)
+								{
+									await SendToClient(message.ToString());
+								}
+								_bufferServer = new List<byte>();
+							}
+						}
+					}
+				}
+				catch
+				{
+					Stop(appClosing: false);
+					return;
+				}
 			}
-			client.Disconnect();
 		}
 
-		private void OnClientMessage(string message)
+		public async Task SendToServer(string data)
 		{
-			if (AppClosingToken.IsCancellationRequested) return;
-			Message message2 = this.CreateMessage(message);
-			Receive receivedFromClient = this.ReceivedFromClient;
-			if (receivedFromClient != null)
+			string text = data.Replace("{ROOM_ID}", World.RoomId.ToString());
+			if (text != null && text.Length > 0)
 			{
-				receivedFromClient(message2);
-			}
-			if (message2.Send)
-			{
-				this.SendToServer(message2.ToString());
+				if (text[text.Length - 1] != 0)
+				{
+					text += "\0";
+				}
+				await SendToServer(Encoding.UTF8.GetBytes(text));
 			}
 		}
 
-		private void OnServerMessage(string message)
+		public async Task SendToServer(byte[] data)
 		{
-			if (AppClosingToken.IsCancellationRequested) return;
-			Message message2 = this.CreateMessage(message);
-			Receive receivedFromServer = this.ReceivedFromServer;
-			if (receivedFromServer != null)
+			NetworkStream stream = _server.GetStream();
+			if (stream.CanWrite)
 			{
-				receivedFromServer(message2);
+				try
+				{
+					await stream.WriteAsync(data, 0, data.Length);
+				}
+				catch
+				{
+					Stop(appClosing: false);
+				}
 			}
-			if (message2.Send)
+		}
+
+		public async Task SendToClient(string data)
+		{
+			string text = data;
+			if (text != null && text.Length > 0)
 			{
-				this.SendToClient(message2.ToString());
+				if (data[data.Length - 1] != 0)
+				{
+					data += "\0";
+				}
+				await SendToClient(Encoding.UTF8.GetBytes(data));
+			}
+		}
+
+		public async Task SendToClient(byte[] data)
+		{
+			NetworkStream stream = _client.GetStream();
+			if (stream.CanWrite)
+			{
+				try
+				{
+					await stream.WriteAsync(data, 0, data.Length);
+				}
+				catch
+				{
+					Stop(appClosing: false);
+				}
 			}
 		}
 
@@ -206,76 +429,25 @@ namespace Grimoire.Networking
 		{
 			if (raw != null && raw.Length > 0)
 			{
-				char c = raw[0];
-				if (c == '%')
+				switch (raw[0])
 				{
-					return new XtMessage(raw);
-				}
-				if (c == '<')
-				{
-					return new XmlMessage(raw);
-				}
-				if (c == '{')
-				{
-					return new JsonMessage(raw);
+					case '<':
+						return new XmlMessage(raw);
+
+					case '%':
+						return new XtMessage(raw);
+
+					case '{':
+						return new JsonMessage(raw);
 				}
 			}
 			return null;
 		}
 
-		public async Task SendToServer(string data)
+		static Proxy()
 		{
-			string text = data.Replace("{ROOM_ID}", World.RoomId.ToString());
-			await this._server.WriteTask(text);
+			Instance = new Proxy();
+			AppClosingToken = new CancellationTokenSource();
 		}
-
-		public async Task SendToServer(byte[] data)
-		{
-			await this._server.WriteTask(data);
-		}
-
-		public async Task SendToClient(string data)
-		{
-			await this._client.WriteTask(data);
-		}
-
-		public async Task SendToClient(byte[] data)
-		{
-			await this._client.WriteTask(data);
-		}
-
-		private GrimoireClient _client;
-
-		private GrimoireClient _server;
-
-		private TcpListener _listener;
-
-		private readonly List<IJsonMessageHandler> _handlersJson = new List<IJsonMessageHandler>
-		{			
-			//new HandlerSkills(),
-			//new HandlerDPS(),
-			new HandlerDropItem(),
-			new HandlerGetQuests(),
-			new HandlerQuestComplete(),
-			new HandlerMapJoin(),
-			//new HandlerLoadBank(),
-			new HandlerLoadShop()
-		};
-
-		private readonly List<IXtMessageHandler> _handlersXt = new List<IXtMessageHandler>
-		{
-			//new HandlerWarningsXt(),
-			//new HandlerLogin(),
-			//new HandlerAFK(),
-			//new HandlerChat(),
-			//new HandlerXtJoin(),
-			//new HandlerXtCellJoin()
-			new HandlerWarnings()
-		};
-
-		private readonly List<IXmlMessageHandler> _handlersXml = new List<IXmlMessageHandler>
-		{
-			new HandlerPolicy()
-		};
 	}
 }

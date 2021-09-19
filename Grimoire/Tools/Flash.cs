@@ -221,9 +221,9 @@ namespace Grimoire.Tools
                 return ServersFromJson(response);
             }
             if (response.StartsWith("<login") && response.EndsWith("</login>"))
-            {
-                return ServersFromXml(response);
-            }
+			{
+				return ServersFromXml(response);
+			}
 			return response;
 		}
 

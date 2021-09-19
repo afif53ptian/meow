@@ -27,7 +27,7 @@ namespace Grimoire
                 BotManager.Instance.Load += Program.OnMainFormLoaded;
                 Application.Run(new Root());
                 Program.PluginsManager.UnloadAll();
-                Proxy.Instance.Stop(appClosing: false);
+                Proxy.Instance.Stop(appClosing: true);
             }
         }
 
