@@ -322,8 +322,9 @@ namespace Grimoire.UI
 			// 
 			// nTray
 			// 
-			this.nTray.Icon = ((System.Drawing.Icon)(resources.GetObject("nTray.Icon")));
-			this.nTray.Text = "GrimLite";
+			//this.nTray.Icon = ((System.Drawing.Icon)(resources.GetObject("nTray.Icon")));
+			this.nTray.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+			this.nTray.Text = "Artix Game Launcher";
 			this.nTray.Visible = true;
 			this.nTray.MouseClick += new System.Windows.Forms.MouseEventHandler(this.nTray_MouseClick);
 			// 
