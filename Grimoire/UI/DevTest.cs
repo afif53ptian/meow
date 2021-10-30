@@ -47,7 +47,7 @@ namespace Grimoire.UI
 			}
 			else if (radGame.Checked)
 			{
-				string res = Flash.CallGameFunction(tbGameFunction.Text, tbArgs.Text.Split(','));
+				string res = Flash.CallGameFunction(tbGameFunction.Text, args);
 				tbLogs.Text = res;
 			}
 			else if (radGameObject.Checked)
