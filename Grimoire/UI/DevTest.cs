@@ -69,7 +69,7 @@ namespace Grimoire.UI
             {
                 darkLabel6.Text = "Game Function";
 				tbArgs.Enabled = true;
-				chkArgs.Enabled = false;
+				chkArgs.Enabled = true;
 
 			}
 		}
