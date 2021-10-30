@@ -45,11 +45,33 @@ namespace Grimoire.UI
 				string res = Flash.Call2(tbGameFunction.Text, args);
 				tbLogs.Text = res;
 			}
-			if (radGame.Checked)
+			else if (radGame.Checked)
 			{
 				string res = Flash.CallGameFunction(tbGameFunction.Text, tbArgs.Text.Split(','));
 				tbLogs.Text = res;
 			}
+			else if (radGameObject.Checked)
+			{
+				string res = Flash.Instance.GetGameObject(tbGameFunction.Text);
+				tbLogs.Text = res;
+			}
 		}
-	}
+
+        private void radGameObject_CheckedChanged(object sender, EventArgs e)
+        {
+			if (radGameObject.Checked)
+            {
+                darkLabel6.Text = "Game Object";
+				tbArgs.Enabled = false;
+				chkArgs.Enabled = false;
+			}
+			else 
+            {
+                darkLabel6.Text = "Game Function";
+				tbArgs.Enabled = true;
+				chkArgs.Enabled = false;
+
+			}
+		}
+    }
 }
