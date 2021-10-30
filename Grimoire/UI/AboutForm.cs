@@ -11,6 +11,8 @@ namespace Grimoire.UI
 {
     public partial class AboutForm : DarkForm
     {
+        public string verison => lblVersion.Text;
+
         public AboutForm()
         {
             InitializeComponent();
