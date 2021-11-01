@@ -116,6 +116,7 @@ namespace Grimoire.UI
             this.tbLogs.Multiline = true;
             this.tbLogs.Name = "tbLogs";
             this.tbLogs.ReadOnly = true;
+            this.tbLogs.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.tbLogs.Size = new System.Drawing.Size(235, 106);
             this.tbLogs.TabIndex = 175;
             // 
